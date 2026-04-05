@@ -1,7 +1,7 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { auth } = require('../middleware/auth');
+const { signAuthToken } = require('../utils/jwt');
 
 const router = express.Router();
 
@@ -18,11 +18,7 @@ router.post('/signup', async (req, res) => {
     const user = new User({ name, email, password, role: role || 'Developer' });
     await user.save();
 
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET || 'sepm_secret_key_2024',
-      { expiresIn: '7d' }
-    );
+    const token = signAuthToken({ id: user._id, role: user.role });
 
     res.status(201).json({
       token,
@@ -48,11 +44,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET || 'sepm_secret_key_2024',
-      { expiresIn: '7d' }
-    );
+    const token = signAuthToken({ id: user._id, role: user.role });
 
     res.json({
       token,

@@ -1,7 +1,7 @@
 const express = require('express');
 const Sprint = require('../models/Sprint');
 const Task = require('../models/Task');
-const { auth } = require('../middleware/auth');
+const { auth, managerOnly } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -38,7 +38,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 // POST /api/sprints
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, managerOnly, async (req, res) => {
   try {
     const { name, goal, startDate, endDate, status, capacityPoints } = req.body;
     const sprint = new Sprint({
@@ -59,7 +59,7 @@ router.post('/', auth, async (req, res) => {
 });
 
 // PUT /api/sprints/:id
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', auth, managerOnly, async (req, res) => {
   try {
     const sprint = await Sprint.findById(req.params.id);
     if (!sprint) return res.status(404).json({ message: 'Sprint not found' });
@@ -106,7 +106,7 @@ router.put('/:id', auth, async (req, res) => {
 });
 
 // DELETE /api/sprints/:id
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', auth, managerOnly, async (req, res) => {
   try {
     const assignedTasks = await Task.countDocuments({ sprintId: req.params.id });
     if (assignedTasks > 0) {

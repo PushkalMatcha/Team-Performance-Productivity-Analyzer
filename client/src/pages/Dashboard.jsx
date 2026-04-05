@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
-import { getTeamAnalytics, getBottlenecks, getTeamAiInsights } from '../services/api';
+import { getTeamAnalytics, getBottlenecks, getTeamAiInsights, createAuthenticatedSocket } from '../services/api';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
@@ -115,8 +114,12 @@ export default function Dashboard() {
   useEffect(() => {
     fetchData();
 
-    // Setup WebSocket connection
-    const socket = io('http://localhost:5000');
+    let socket;
+    try {
+      socket = createAuthenticatedSocket();
+    } catch {
+      return undefined;
+    }
     
     socket.on('DATA_UPDATED', (payload) => {
       console.log('Real-time update received:', payload);
@@ -124,7 +127,7 @@ export default function Dashboard() {
     });
 
     return () => {
-      socket.disconnect();
+      socket?.disconnect();
     };
   }, [fetchData]);
 

@@ -1,4 +1,18 @@
 import axios from 'axios';
+import { io } from 'socket.io-client';
+
+export const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+
+export const createAuthenticatedSocket = () => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('Missing auth token for socket initialization');
+  }
+
+  return io(SOCKET_URL, {
+    auth: { token },
+  });
+};
 
 const API = axios.create({
   baseURL: '/api',
@@ -53,11 +67,11 @@ export const getSprintAnalytics = () => API.get('/analytics/sprints');
 export const getBottlenecks = () => API.get('/analytics/bottlenecks');
 export const getInsights = () => API.get('/analytics/insights');
 
+// AI
+export const getTeamAiInsights = () => API.get('/ai/team-insights');
+export const generateTaskDescription = (data) => API.post('/ai/generate-task', data);
+
 // GitHub API Sync
 export const syncGithubData = (id, data) => API.post(`/github/sync/${id}`, data);
-
-// AI Integration
-export const generateTaskDescription = (data) => API.post('/ai/generate-task', data);
-export const getTeamAiInsights = () => API.get('/ai/team-insights');
 
 export default API;

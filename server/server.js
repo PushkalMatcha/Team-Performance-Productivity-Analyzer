@@ -16,6 +16,10 @@ const githubRoutes = require('./routes/github');
 const aiRoutes = require('./routes/ai');
 const webhookRoutes = require('./routes/webhooks');
 const seedDatabase = require('./utils/seed');
+const { getJwtSecret, verifyAuthToken } = require('./utils/jwt');
+
+// Validate critical auth config at startup so HTTP and WebSocket use the same key.
+getJwtSecret();
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -23,6 +27,22 @@ const io = new Server(httpServer, {
   cors: {
     origin: "*", // Adjust origins for production
     methods: ["GET", "POST", "PUT", "DELETE"]
+  }
+});
+
+// Phase 3: WebSocket Authentication
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (!token) {
+    return next(new Error('Authentication Error: Missing Token'));
+  }
+  
+  try {
+    const verified = verifyAuthToken(token);
+    socket.user = verified;
+    next();
+  } catch (error) {
+    next(new Error('Authentication Error: Invalid Token'));
   }
 });
 
@@ -35,6 +55,7 @@ io.on('connection', (socket) => {
 
 // Middleware
 app.use(cors());
+app.use('/api/github/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 
 // Inject io into request objects so routes can trigger events
@@ -98,4 +119,8 @@ async function startServer() {
   });
 }
 
-startServer();
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = { app, startServer };

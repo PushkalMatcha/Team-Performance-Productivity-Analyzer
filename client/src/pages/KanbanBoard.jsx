@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { io } from 'socket.io-client';
-import { getTasks, updateTask } from '../services/api';
+import { getTasks, updateTask, createAuthenticatedSocket } from '../services/api';
 import { DndContext, closestCenter, useDroppable, useDraggable, DragOverlay, defaultDropAnimationSideEffects } from '@dnd-kit/core';
 import { HiOutlineClock, HiOutlineExclamationCircle } from 'react-icons/hi';
 
@@ -124,10 +123,16 @@ export default function KanbanBoard() {
 
   useEffect(() => {
     fetchData();
-    
-    const socket = io('http://localhost:5000');
+
+    let socket;
+    try {
+      socket = createAuthenticatedSocket();
+    } catch {
+      return undefined;
+    }
+
     socket.on('DATA_UPDATED', () => fetchData());
-    return () => socket.disconnect();
+    return () => socket?.disconnect();
   }, [fetchData]);
 
   const handleDragStart = (event) => {

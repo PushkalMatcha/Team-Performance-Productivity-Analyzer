@@ -1,5 +1,5 @@
-const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { verifyAuthToken } = require('../utils/jwt');
 
 const auth = async (req, res, next) => {
   try {
@@ -8,7 +8,7 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ message: 'No auth token, access denied' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'sepm_secret_key_2024');
+    const decoded = verifyAuthToken(token);
     const user = await User.findById(decoded.id).select('-password');
     if (!user) {
       return res.status(401).json({ message: 'Token is invalid' });

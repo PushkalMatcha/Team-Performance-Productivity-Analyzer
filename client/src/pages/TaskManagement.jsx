@@ -10,6 +10,7 @@ import {
   createSprint,
   updateSprint,
   generateTaskDescription,
+  SOCKET_URL
 } from '../services/api';
 import {
   HiOutlinePlus,
@@ -441,8 +442,11 @@ export default function TaskManagement() {
   useEffect(() => {
     fetchData();
     
-    // Setup WebSocket connection
-    const socket = io('http://localhost:5000');
+    // Setup WebSocket connection securely
+    const token = localStorage.getItem('token');
+    const socket = io(SOCKET_URL, {
+      auth: { token }
+    });
     
     socket.on('DATA_UPDATED', (payload) => {
       console.log('Real-time task update received:', payload);

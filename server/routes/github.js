@@ -1,7 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const Developer = require('../models/Developer');
-const { auth } = require('../middleware/auth');
+const { auth, managerOnly } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -16,7 +16,7 @@ const getGithubHeaders = () => {
 };
 
 // POST /api/github/sync/:id
-router.post('/sync/:id', auth, async (req, res) => {
+router.post('/sync/:id', auth, managerOnly, async (req, res) => {
   try {
     const { githubUsername } = req.body;
     const developer = await Developer.findById(req.params.id);
