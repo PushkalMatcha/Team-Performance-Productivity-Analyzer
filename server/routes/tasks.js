@@ -3,6 +3,7 @@ const Task = require('../models/Task');
 const Developer = require('../models/Developer');
 const Sprint = require('../models/Sprint');
 const { auth } = require('../middleware/auth');
+const { sendTaskNotification } = require('../utils/email');
 
 const router = express.Router();
 
@@ -136,6 +137,10 @@ router.post('/', auth, async (req, res) => {
     // Emit real-time update
     if (req.io) req.io.emit('DATA_UPDATED', { message: 'Task created', task: createdTask._id });
     
+    // Fire off an email if there's an assignee
+    if (assignedTo && createdTask.assignedTo) {
+      sendTaskNotification(createdTask.assignedTo, createdTask, 'new').catch(console.error);
+    }
   } catch (error) {
     console.error('Task Create Error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -150,6 +155,8 @@ router.put('/:id', auth, async (req, res) => {
     if (!task) return res.status(404).json({ message: 'Task not found' });
 
     const prevStatus = task.status;
+    const prevAssignedTo = task.assignedTo;
+    const prevPriority = task.priority;
     
     // Fix empty string cast error for assignedTo
     if (req.body.assignedTo === '') {
@@ -239,6 +246,15 @@ router.put('/:id', auth, async (req, res) => {
     // Emit real-time update
     if (req.io) req.io.emit('DATA_UPDATED', { message: 'Task updated', task: updatedTask._id });
     
+    // Dispatch Email Notification if freshly assigned or escalated
+    if (updatedTask.assignedTo) {
+      const isFreshAssignment = String(prevAssignedTo) !== String(updatedTask.assignedTo._id);
+      const isEscalated = (nextStatus === 'High' || nextStatus === 'Critical') && (prevPriority !== 'High' && prevPriority !== 'Critical');
+      
+      if (isFreshAssignment || isEscalated) {
+        sendTaskNotification(updatedTask.assignedTo, updatedTask, 'updated').catch(console.error);
+      }
+    }
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
