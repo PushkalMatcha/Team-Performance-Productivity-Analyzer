@@ -1,5 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { io } from 'socket.io-client';
+import { useState, useEffect, useMemo } from 'react';
 import {
   getTasks,
   createTask,
@@ -9,8 +8,6 @@ import {
   getSprints,
   createSprint,
   updateSprint,
-  generateTaskDescription,
-  SOCKET_URL
 } from '../services/api';
 import {
   HiOutlinePlus,
@@ -19,7 +16,6 @@ import {
   HiOutlineClock,
   HiOutlineExclamationCircle,
   HiOutlineX,
-  HiOutlineSparkles,
 } from 'react-icons/hi';
 
 const statusColors = {
@@ -53,7 +49,6 @@ function TaskModal({ isOpen, onClose, onSubmit, task, developers, sprints, allTa
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    repositoryName: '',
     assignedTo: '',
     sprintId: '',
     deadline: '',
@@ -68,14 +63,12 @@ function TaskModal({ isOpen, onClose, onSubmit, task, developers, sprints, allTa
     dependencies: [],
     acceptanceCriteriaText: '',
   });
-  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     if (task) {
       setFormData({
         title: task.title || '',
         description: task.description || '',
-        repositoryName: task.repositoryName || '',
         assignedTo: task.assignedTo?._id || task.assignedTo || '',
         sprintId: task.sprintId?._id || task.sprintId || '',
         deadline: task.deadline ? new Date(task.deadline).toISOString().split('T')[0] : '',
@@ -94,7 +87,6 @@ function TaskModal({ isOpen, onClose, onSubmit, task, developers, sprints, allTa
       setFormData({
         title: '',
         description: '',
-        repositoryName: '',
         assignedTo: '',
         sprintId: '',
         deadline: '',
@@ -131,26 +123,6 @@ function TaskModal({ isOpen, onClose, onSubmit, task, developers, sprints, allTa
 
   const dependencyCandidates = (allTasks || []).filter((candidate) => candidate._id !== task?._id);
 
-  const handleAutoGenerate = async () => {
-    if (!formData.title) return alert('Please enter a Title first!');
-    setIsGenerating(true);
-    try {
-      let assigneeName = '';
-      if (formData.assignedTo) {
-        const dev = developers.find((d) => d._id === formData.assignedTo);
-        if (dev) assigneeName = dev.name;
-      }
-      const res = await generateTaskDescription({ title: formData.title, assigneeName });
-      if (res.data?.description) {
-        setFormData(prev => ({ ...prev, description: res.data.description }));
-      }
-    } catch (e) {
-      alert(e.response?.data?.message || 'Failed to auto-generate description');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
@@ -176,33 +148,11 @@ function TaskModal({ isOpen, onClose, onSubmit, task, developers, sprints, allTa
           </div>
 
           <div>
-            <label className="block text-sm text-text-secondary mb-1">GitHub Repository (Optional)</label>
-            <input
-              type="text"
-              value={formData.repositoryName}
-              onChange={(e) => setFormData({ ...formData, repositoryName: e.target.value })}
-              className="w-full px-4 py-2.5 bg-surface rounded-xl border border-border text-text-primary focus:outline-none focus:border-primary transition-colors"
-              placeholder="e.g. backend-api or PushkalMatcha/Project"
-            />
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm text-text-secondary">Description</label>
-              <button 
-                type="button" 
-                onClick={handleAutoGenerate}
-                disabled={isGenerating || !formData.title}
-                className="flex items-center gap-1 text-xs text-primary-light hover:text-primary transition-colors disabled:opacity-50"
-              >
-                <HiOutlineSparkles className={isGenerating ? "animate-pulse text-amber-300" : "text-amber-400"} />
-                {isGenerating ? 'Generating...' : 'Auto-Generate'}
-              </button>
-            </div>
+            <label className="block text-sm text-text-secondary mb-1">Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2.5 bg-surface rounded-xl border border-border text-text-primary focus:outline-none focus:border-primary transition-colors resize-y min-h-[100px] text-sm leading-relaxed"
+              className="w-full px-4 py-2.5 bg-surface rounded-xl border border-border text-text-primary focus:outline-none focus:border-primary transition-colors resize-none h-20"
               placeholder="Describe the task..."
             />
           </div>
@@ -422,7 +372,11 @@ export default function TaskManagement() {
   const [newSprintStartDate, setNewSprintStartDate] = useState('');
   const [newSprintEndDate, setNewSprintEndDate] = useState('');
 
-  const fetchData = useCallback(async () => {
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
     try {
       const [tasksRes, devsRes, sprintsRes] = await Promise.all([
         getTasks(),
@@ -437,26 +391,7 @@ export default function TaskManagement() {
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-    
-    // Setup WebSocket connection securely
-    const token = localStorage.getItem('token');
-    const socket = io(SOCKET_URL, {
-      auth: { token }
-    });
-    
-    socket.on('DATA_UPDATED', (payload) => {
-      console.log('Real-time task update received:', payload);
-      fetchData(); // Refetch tasks transparently whenever server emits a change
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, [fetchData]);
+  };
 
   const handleCreate = async (data) => {
     try {
@@ -716,11 +651,6 @@ export default function TaskManagement() {
                   )}
 
                   <div className="flex flex-wrap items-center gap-4 text-xs text-text-secondary">
-                    {task.repositoryName && (
-                      <span className="flex items-center gap-1 font-semibold text-primary-light bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
-                        📦 {task.repositoryName}
-                      </span>
-                    )}
                     {task.assignedToName && (
                       <span className="flex items-center gap-1">
                         <div className="w-5 h-5 rounded-md bg-gradient-to-br from-primary to-accent flex items-center justify-center text-[10px] text-white font-bold">
