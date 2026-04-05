@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import TeamAnalytics from './pages/TeamAnalytics';
 import DeveloperPerformance from './pages/DeveloperPerformance';
 import TaskManagement from './pages/TaskManagement';
+import KanbanBoard from './pages/KanbanBoard';
 import Reports from './pages/Reports';
 
 function ProtectedRoute({ children }) {
@@ -42,6 +43,7 @@ function AppRoutes() {
         <Route path="/developers" element={<DeveloperPerformance />} />
         <Route path="/developers/:id" element={<DeveloperPerformance />} />
         <Route path="/tasks" element={<TaskManagement />} />
+        <Route path="/kanban" element={<KanbanBoard />} />
         <Route path="/reports" element={<Reports />} />
       </Route>
       <Route path="*" element={<Navigate to="/" />} />
