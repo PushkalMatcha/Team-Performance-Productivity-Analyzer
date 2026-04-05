@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import { getTasks, updateTask } from '../services/api';
-import { DndContext, closestCenter, useDroppable, useDraggable } from '@dnd-kit/core';
+import { DndContext, closestCenter, useDroppable, useDraggable, DragOverlay, defaultDropAnimationSideEffects } from '@dnd-kit/core';
 import { HiOutlineClock, HiOutlineExclamationCircle } from 'react-icons/hi';
 
 const statusColors = {
@@ -16,24 +16,12 @@ const priorityColors = {
   Low: 'bg-success/10 text-success border border-success/20',
 };
 
-function KanbanCard({ task }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: task._id,
-    data: task,
-  });
-  
-  const style = transform ? {
-    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-  } : undefined;
-
+function KanbanCardContent({ task, isDragging, isOverlay }) {
   return (
     <div 
-      ref={setNodeRef} 
-      style={style} 
-      {...listeners} 
-      {...attributes} 
-      className={`p-4 mb-3 rounded-xl bg-surface border shadow-sm transition-all duration-200 cursor-grab active:cursor-grabbing hover:border-primary/50 group
-        ${isDragging ? 'opacity-70 border-primary scale-105 z-50 shadow-2xl relative' : 'border-border opacity-100'}
+      className={`p-4 mb-3 rounded-xl bg-surface border shadow-sm transition-colors duration-200 cursor-grab active:cursor-grabbing group
+        ${isOverlay ? 'border-primary ring-2 ring-primary/50 scale-[1.02] shadow-2xl z-50 bg-surface-light' : 'border-border'}
+        ${isDragging && !isOverlay ? 'opacity-30 border-dashed border-primary bg-surface-lighter/50' : ''}
         ${task.isBlocked ? 'border-l-4 border-l-danger bg-danger/5' : ''}
       `}
     >
@@ -67,6 +55,19 @@ function KanbanCard({ task }) {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function KanbanCard({ task }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: task._id,
+    data: task,
+  });
+
+  return (
+    <div ref={setNodeRef} {...listeners} {...attributes}>
+      <KanbanCardContent task={task} isDragging={isDragging} />
     </div>
   );
 }
@@ -108,6 +109,7 @@ function KanbanColumn({ status, tasks }) {
 export default function KanbanBoard() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeId, setActiveId] = useState(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -128,7 +130,16 @@ export default function KanbanBoard() {
     return () => socket.disconnect();
   }, [fetchData]);
 
+  const handleDragStart = (event) => {
+    setActiveId(event.active.id);
+  };
+
+  const handleDragCancel = () => {
+    setActiveId(null);
+  };
+
   const handleDragEnd = async (event) => {
+    setActiveId(null);
     const { active, over } = event;
     if (!over) return;
 
@@ -155,6 +166,8 @@ export default function KanbanBoard() {
     }
   };
 
+  const activeTask = tasks.find(t => t._id === activeId);
+
   const columns = ['Pending', 'In Progress', 'Completed'];
 
   if (loading) {
@@ -174,7 +187,12 @@ export default function KanbanBoard() {
         </div>
       </div>
 
-      <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext 
+        collisionDetection={closestCenter} 
+        onDragStart={handleDragStart} 
+        onDragCancel={handleDragCancel}
+        onDragEnd={handleDragEnd}
+      >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1 min-h-0">
           {columns.map(status => (
             <KanbanColumn 
@@ -184,6 +202,14 @@ export default function KanbanBoard() {
             />
           ))}
         </div>
+        
+        <DragOverlay dropAnimation={{
+          duration: 250,
+          easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+          sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.4' } } }),
+        }}>
+          {activeTask ? <KanbanCardContent task={activeTask} isOverlay /> : null}
+        </DragOverlay>
       </DndContext>
     </div>
   );
