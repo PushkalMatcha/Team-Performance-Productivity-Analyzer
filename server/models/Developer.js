@@ -21,6 +21,12 @@ const developerSchema = new mongoose.Schema({
     prs: Number,
     bugs: Number,
   }],
+  projectsContributions: [{
+    repositoryName: { type: String, required: true },
+    commits: { type: Number, default: 0 },
+    pullRequestsMerged: { type: Number, default: 0 },
+    issuesResolved: { type: Number, default: 0 }
+  }],
   joinedAt: { type: Date, default: Date.now },
 });
 

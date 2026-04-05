@@ -43,6 +43,7 @@ router.post('/', auth, async (req, res) => {
       priority,
       priorityRank,
       status,
+      repositoryName,
       sprintId,
       type,
       storyPoints,
@@ -95,6 +96,7 @@ router.post('/', auth, async (req, res) => {
     const task = new Task({
       title,
       description,
+      repositoryName: repositoryName || '',
       ...(assignedTo ? { assignedTo } : {}),
       assignedToName,
       ...(sprintId ? { sprintId } : {}),

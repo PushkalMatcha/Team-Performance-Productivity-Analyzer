@@ -52,6 +52,7 @@ function TaskModal({ isOpen, onClose, onSubmit, task, developers, sprints, allTa
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    repositoryName: '',
     assignedTo: '',
     sprintId: '',
     deadline: '',
@@ -73,6 +74,7 @@ function TaskModal({ isOpen, onClose, onSubmit, task, developers, sprints, allTa
       setFormData({
         title: task.title || '',
         description: task.description || '',
+        repositoryName: task.repositoryName || '',
         assignedTo: task.assignedTo?._id || task.assignedTo || '',
         sprintId: task.sprintId?._id || task.sprintId || '',
         deadline: task.deadline ? new Date(task.deadline).toISOString().split('T')[0] : '',
@@ -91,6 +93,7 @@ function TaskModal({ isOpen, onClose, onSubmit, task, developers, sprints, allTa
       setFormData({
         title: '',
         description: '',
+        repositoryName: '',
         assignedTo: '',
         sprintId: '',
         deadline: '',
@@ -168,6 +171,17 @@ function TaskModal({ isOpen, onClose, onSubmit, task, developers, sprints, allTa
               className="w-full px-4 py-2.5 bg-surface rounded-xl border border-border text-text-primary focus:outline-none focus:border-primary transition-colors"
               placeholder="Enter task title"
               required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-text-secondary mb-1">GitHub Repository (Optional)</label>
+            <input
+              type="text"
+              value={formData.repositoryName}
+              onChange={(e) => setFormData({ ...formData, repositoryName: e.target.value })}
+              className="w-full px-4 py-2.5 bg-surface rounded-xl border border-border text-text-primary focus:outline-none focus:border-primary transition-colors"
+              placeholder="e.g. backend-api or PushkalMatcha/Project"
             />
           </div>
 
@@ -698,6 +712,11 @@ export default function TaskManagement() {
                   )}
 
                   <div className="flex flex-wrap items-center gap-4 text-xs text-text-secondary">
+                    {task.repositoryName && (
+                      <span className="flex items-center gap-1 font-semibold text-primary-light bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                        📦 {task.repositoryName}
+                      </span>
+                    )}
                     {task.assignedToName && (
                       <span className="flex items-center gap-1">
                         <div className="w-5 h-5 rounded-md bg-gradient-to-br from-primary to-accent flex items-center justify-center text-[10px] text-white font-bold">

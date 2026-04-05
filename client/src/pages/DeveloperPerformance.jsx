@@ -247,6 +247,41 @@ function DeveloperDetail({ developerId }) {
         )}
       </div>
 
+      {/* Repository Breakdown */}
+      {developer.projectsContributions && developer.projectsContributions.length > 0 && (
+        <div className="glass-card p-6 animate-fade-in-up-delay-1">
+          <h3 className="text-lg font-semibold text-text-primary mb-4">Repository Breakdown</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {developer.projectsContributions.map((proj, i) => (
+              <div key={i} className="p-4 rounded-xl border border-border bg-surface hover:border-primary/30 transition-colors">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded bg-primary/10 text-primary-light flex items-center justify-center">
+                    📦
+                  </div>
+                  <p className="font-semibold text-text-primary truncate" title={proj.repositoryName}>
+                    {proj.repositoryName}
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-surface-lighter rounded-lg p-2">
+                    <p className="text-lg font-bold text-primary-light">{proj.commits}</p>
+                    <p className="text-[10px] text-text-secondary uppercase">Commits</p>
+                  </div>
+                  <div className="bg-surface-lighter rounded-lg p-2">
+                    <p className="text-lg font-bold text-accent">{proj.pullRequestsMerged}</p>
+                    <p className="text-[10px] text-text-secondary uppercase">PRs</p>
+                  </div>
+                  <div className="bg-surface-lighter rounded-lg p-2">
+                    <p className="text-lg font-bold text-warning">{proj.issuesResolved}</p>
+                    <p className="text-[10px] text-text-secondary uppercase">Issues</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 animate-fade-in-up-delay-1">
         {[

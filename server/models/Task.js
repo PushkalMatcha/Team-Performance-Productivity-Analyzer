@@ -10,6 +10,7 @@ const taskSchema = new mongoose.Schema({
   },
   assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'Developer' },
   assignedToName: { type: String, default: '' },
+  repositoryName: { type: String, default: '', trim: true },
   sprintId: { type: mongoose.Schema.Types.ObjectId, ref: 'Sprint', default: null },
   storyPoints: { type: Number, min: 1, max: 100, default: 1 },
   estimateHours: { type: Number, min: 0, default: 0 },
