@@ -73,8 +73,8 @@ async function startServer() {
     const Developer = require('./models/Developer');
     const count = await Developer.countDocuments();
     if (count === 0) {
-      console.log('No data found, seeding database...');
-      await seedDatabase();
+      console.log('No data found. Skipping mock seeding to keep DB clean for real-time tracking.');
+      // await seedDatabase();
     }
   } catch (err) {
     console.log('MongoDB not available, using MongoDB Memory Server...');
