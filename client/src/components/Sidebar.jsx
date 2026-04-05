@@ -8,6 +8,7 @@ import {
   HiOutlineDocumentReport,
   HiOutlineLogout,
   HiOutlineLightningBolt,
+  HiOutlineViewBoards,
 } from 'react-icons/hi';
 
 const navItems = [
@@ -15,6 +16,7 @@ const navItems = [
   { path: '/analytics', label: 'Team Analytics', icon: HiOutlineChartBar },
   { path: '/developers', label: 'Developers', icon: HiOutlineUsers },
   { path: '/tasks', label: 'Tasks', icon: HiOutlineClipboardList },
+  { path: '/kanban', label: 'Kanban Board', icon: HiOutlineViewBoards },
   { path: '/reports', label: 'Reports', icon: HiOutlineDocumentReport },
 ];
 
