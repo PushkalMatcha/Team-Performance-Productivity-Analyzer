@@ -58,6 +58,7 @@ export const getSprintBoard = (id) => API.get(`/sprints/${id}/board`);
 
 // Developers
 export const getDevelopers = () => API.get('/developers');
+export const createDeveloper = (data) => API.post('/developers', data);
 export const getDeveloper = (id) => API.get(`/developers/${id}`);
 export const getDeveloperStats = (id) => API.get(`/developers/${id}/stats`);
 

@@ -2,7 +2,8 @@ const express = require('express');
 const Developer = require('../models/Developer');
 const Task = require('../models/Task');
 const Activity = require('../models/Activity');
-const { auth } = require('../middleware/auth');
+const { auth, managerOnly } = require('../middleware/auth');
+const { addDeveloper } = require('../controllers/developerController');
 
 const router = express.Router();
 
@@ -63,5 +64,8 @@ router.get('/:id/stats', auth, async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
+
+// POST /api/developers
+router.post('/', auth, managerOnly, addDeveloper);
 
 module.exports = router;
