@@ -1,11 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getDevelopers, getDeveloper, getDeveloperStats, syncGithubData } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { getDevelopers, getDeveloper, getDeveloperStats, syncGithubData, createDeveloper } from '../services/api';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell,
 } from 'recharts';
-import { HiOutlineCode, HiOutlineCheckCircle, HiOutlineArrowLeft, HiOutlineRefresh, HiOutlineUser } from 'react-icons/hi';
+import {
+  HiOutlineCode,
+  HiOutlineCheckCircle,
+  HiOutlineArrowLeft,
+  HiOutlineRefresh,
+  HiOutlineUser,
+  HiOutlinePlus,
+  HiOutlineX,
+} from 'react-icons/hi';
 
 const COLORS = ['#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
 
@@ -22,6 +31,99 @@ const CustomTooltip = ({ active, payload, label }) => {
     </div>
   );
 };
+
+function AddTeamMemberModal({ isOpen, onClose, onSubmit, saving, error, formData, setFormData }) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative glass-card p-6 w-full max-w-2xl mx-4 animate-fade-in-up">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-text-primary">Add team member</h2>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-surface-lighter text-text-secondary">
+            <HiOutlineX />
+          </button>
+        </div>
+
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-text-secondary mb-1">Name</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-4 py-2.5 bg-surface rounded-xl border border-border text-text-primary focus:outline-none focus:border-primary transition-colors"
+                placeholder="Jane Doe"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-text-secondary mb-1">Email</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full px-4 py-2.5 bg-surface rounded-xl border border-border text-text-primary focus:outline-none focus:border-primary transition-colors"
+                placeholder="jane@company.com"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-text-secondary mb-1">GitHub Username</label>
+              <input
+                type="text"
+                value={formData.githubUsername}
+                onChange={(e) => setFormData({ ...formData, githubUsername: e.target.value })}
+                className="w-full px-4 py-2.5 bg-surface rounded-xl border border-border text-text-primary focus:outline-none focus:border-primary transition-colors"
+                placeholder="janedoe"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-text-secondary mb-1">Skills (comma separated)</label>
+              <input
+                type="text"
+                value={formData.skillsText}
+                onChange={(e) => setFormData({ ...formData, skillsText: e.target.value })}
+                className="w-full px-4 py-2.5 bg-surface rounded-xl border border-border text-text-primary focus:outline-none focus:border-primary transition-colors"
+                placeholder="React, Node.js, MongoDB"
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div className="text-sm text-danger bg-danger/10 border border-danger/20 rounded-lg px-3 py-2">
+              {error}
+            </div>
+          )}
+
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2.5 rounded-xl border border-border text-text-secondary text-sm hover:bg-surface-lighter transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-60"
+            >
+              <HiOutlinePlus />
+              {saving ? 'Adding...' : 'Add Team Member'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 function DeveloperCard({ dev, index }) {
   return (
@@ -373,19 +475,67 @@ function DeveloperDetail({ developerId }) {
 
 export default function DeveloperPerformance() {
   const { id } = useParams();
+  const { user } = useAuth();
   const [developers, setDevelopers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [savingMember, setSavingMember] = useState(false);
+  const [memberError, setMemberError] = useState('');
+  const [memberSuccess, setMemberSuccess] = useState('');
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    githubUsername: '',
+    skillsText: '',
+  });
+
+  const fetchDevelopers = async () => {
+    try {
+      const res = await getDevelopers();
+      setDevelopers(res.data || []);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!id) {
-      getDevelopers()
-        .then((res) => setDevelopers(res.data))
-        .catch(console.error)
-        .finally(() => setLoading(false));
+      fetchDevelopers();
     } else {
       setLoading(false);
     }
   }, [id]);
+
+  const handleAddMember = async (event) => {
+    event.preventDefault();
+    setMemberError('');
+    setMemberSuccess('');
+    setSavingMember(true);
+
+    const skills = formData.skillsText
+      .split(',')
+      .map((skill) => skill.trim())
+      .filter(Boolean);
+
+    try {
+      await createDeveloper({
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        githubUsername: formData.githubUsername.trim(),
+        skills,
+      });
+      setMemberSuccess('Team member added.');
+      setFormData({ name: '', email: '', githubUsername: '', skillsText: '' });
+      setShowAddMember(false);
+      await fetchDevelopers();
+    } catch (error) {
+      setMemberError(error.response?.data?.message || 'Failed to add team member.');
+    } finally {
+      setSavingMember(false);
+    }
+  };
 
   if (id) {
     return <DeveloperDetail developerId={id} />;
@@ -401,10 +551,45 @@ export default function DeveloperPerformance() {
 
   return (
     <div className="space-y-6">
-      <div className="animate-fade-in-up">
-        <h1 className="text-2xl font-bold text-text-primary">Developer Performance</h1>
-        <p className="text-text-secondary mt-1">Individual developer productivity metrics and analytics</p>
+      <div className="animate-fade-in-up flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary">Developer Performance</h1>
+          <p className="text-text-secondary mt-1">Individual developer productivity metrics and analytics</p>
+        </div>
+        {user?.role === 'Manager' && (
+          <button
+            onClick={() => {
+              setMemberError('');
+              setMemberSuccess('');
+              setShowAddMember(true);
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
+          >
+            <HiOutlinePlus />
+            Add Team Member
+          </button>
+        )}
       </div>
+
+      {memberSuccess && (
+        <div className="text-sm text-success bg-success/10 border border-success/20 rounded-lg px-3 py-2">
+          {memberSuccess}
+        </div>
+      )}
+
+      <AddTeamMemberModal
+        isOpen={showAddMember}
+        onClose={() => {
+          setShowAddMember(false);
+          setFormData({ name: '', email: '', githubUsername: '', skillsText: '' });
+          setMemberError('');
+        }}
+        onSubmit={handleAddMember}
+        saving={savingMember}
+        error={memberError}
+        formData={formData}
+        setFormData={setFormData}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {developers.map((dev, i) => (

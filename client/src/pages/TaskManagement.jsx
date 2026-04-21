@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useAuth } from '../context/AuthContext';
 import {
   getTasks,
   createTask,
@@ -359,6 +360,7 @@ function TaskModal({ isOpen, onClose, onSubmit, task, developers, sprints, allTa
 }
 
 export default function TaskManagement() {
+  const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [developers, setDevelopers] = useState([]);
   const [sprints, setSprints] = useState([]);
@@ -503,13 +505,15 @@ export default function TaskManagement() {
           <h1 className="text-2xl font-bold text-text-primary">Task Management</h1>
           <p className="text-text-secondary mt-1">Create, assign, and plan tasks across sprints</p>
         </div>
-        <button
-          onClick={() => { setEditingTask(null); setModalOpen(true); }}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary to-primary-dark text-white font-medium hover:shadow-lg hover:shadow-primary/25 transition-all active:scale-95"
-        >
-          <HiOutlinePlus />
-          New Task
-        </button>
+        {user?.role === 'Manager' && (
+          <button
+            onClick={() => { setEditingTask(null); setModalOpen(true); }}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary to-primary-dark text-white font-medium hover:shadow-lg hover:shadow-primary/25 transition-all active:scale-95"
+          >
+            <HiOutlinePlus />
+            New Task
+          </button>
+        )}
       </div>
 
       <div className="flex flex-col lg:flex-row lg:items-center gap-3 animate-fade-in-up-delay-1">
@@ -559,7 +563,7 @@ export default function TaskManagement() {
                     <p className="text-xs text-text-secondary">{new Date(sprint.startDate).toLocaleDateString()} - {new Date(sprint.endDate).toLocaleDateString()}</p>
                   </div>
                   <span className="text-[11px] px-2 py-1 rounded-lg border border-border text-text-secondary">{sprint.status}</span>
-                  {sprint.status !== 'Completed' && (
+                  {sprint.status !== 'Completed' && user?.role === 'Manager' && (
                     <button
                       onClick={() => handleSprintTransition(sprint)}
                       className="px-2.5 py-1.5 text-xs rounded-lg bg-primary/15 text-primary-light hover:bg-primary/25"
@@ -572,40 +576,42 @@ export default function TaskManagement() {
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input
-              type="text"
-              value={newSprintName}
-              onChange={(e) => setNewSprintName(e.target.value)}
-              placeholder="Sprint name"
-              className="px-3 py-2 bg-surface rounded-lg border border-border text-sm text-text-primary"
-            />
-            <input
-              type="text"
-              value={newSprintGoal}
-              onChange={(e) => setNewSprintGoal(e.target.value)}
-              placeholder="Sprint goal"
-              className="px-3 py-2 bg-surface rounded-lg border border-border text-sm text-text-primary"
-            />
-            <input
-              type="date"
-              value={newSprintStartDate}
-              onChange={(e) => setNewSprintStartDate(e.target.value)}
-              className="px-3 py-2 bg-surface rounded-lg border border-border text-sm text-text-primary"
-            />
-            <input
-              type="date"
-              value={newSprintEndDate}
-              onChange={(e) => setNewSprintEndDate(e.target.value)}
-              className="px-3 py-2 bg-surface rounded-lg border border-border text-sm text-text-primary"
-            />
-            <button
-              onClick={handleCreateSprint}
-              className="sm:col-span-2 px-4 py-2 rounded-lg bg-gradient-to-r from-primary to-primary-dark text-sm font-medium text-white"
-            >
-              Create Planning Sprint
-            </button>
-          </div>
+          {user?.role === 'Manager' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <input
+                type="text"
+                value={newSprintName}
+                onChange={(e) => setNewSprintName(e.target.value)}
+                placeholder="Sprint name"
+                className="px-3 py-2 bg-surface rounded-lg border border-border text-sm text-text-primary"
+              />
+              <input
+                type="text"
+                value={newSprintGoal}
+                onChange={(e) => setNewSprintGoal(e.target.value)}
+                placeholder="Sprint goal"
+                className="px-3 py-2 bg-surface rounded-lg border border-border text-sm text-text-primary"
+              />
+              <input
+                type="date"
+                value={newSprintStartDate}
+                onChange={(e) => setNewSprintStartDate(e.target.value)}
+                className="px-3 py-2 bg-surface rounded-lg border border-border text-sm text-text-primary"
+              />
+              <input
+                type="date"
+                value={newSprintEndDate}
+                onChange={(e) => setNewSprintEndDate(e.target.value)}
+                className="px-3 py-2 bg-surface rounded-lg border border-border text-sm text-text-primary"
+              />
+              <button
+                onClick={handleCreateSprint}
+                className="sm:col-span-2 px-4 py-2 rounded-lg bg-gradient-to-r from-primary to-primary-dark text-sm font-medium text-white"
+              >
+                Create Planning Sprint
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -683,25 +689,30 @@ export default function TaskManagement() {
                   <select
                     value={task.status}
                     onChange={(e) => handleStatusChange(task, e.target.value)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${statusColors[task.status]} bg-transparent cursor-pointer focus:outline-none`}
+                    disabled={user?.role !== 'Manager'}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${statusColors[task.status]} bg-transparent cursor-pointer focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     <option value="Pending">Pending</option>
                     <option value="In Progress">In Progress</option>
                     <option value="Completed">Completed</option>
                   </select>
 
-                  <button
-                    onClick={() => { setEditingTask(task); setModalOpen(true); }}
-                    className="p-2 rounded-lg text-text-secondary hover:text-primary-light hover:bg-primary/10 transition-colors"
-                  >
-                    <HiOutlinePencil />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(task._id)}
-                    className="p-2 rounded-lg text-text-secondary hover:text-danger hover:bg-danger/10 transition-colors"
-                  >
-                    <HiOutlineTrash />
-                  </button>
+                  {user?.role === 'Manager' && (
+                    <>
+                      <button
+                        onClick={() => { setEditingTask(task); setModalOpen(true); }}
+                        className="p-2 rounded-lg text-text-secondary hover:text-primary-light hover:bg-primary/10 transition-colors"
+                      >
+                        <HiOutlinePencil />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(task._id)}
+                        className="p-2 rounded-lg text-text-secondary hover:text-danger hover:bg-danger/10 transition-colors"
+                      >
+                        <HiOutlineTrash />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
